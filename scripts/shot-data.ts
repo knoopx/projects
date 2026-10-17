@@ -208,57 +208,49 @@ export const CHANGES: RepoChange[] = (() => {
 
   const out: RepoChange[] = [];
   let prevMain: string | null = null;
+  const pushChange = (
+    parents: string[],
+    desc?: string,
+    rollConflicts = false,
+  ): string => {
+    const id = hex8(Math.floor(rand() * 0x100000000));
+    out.push({
+      change_id: hex8(Math.floor(rand() * 0x100000000)),
+      commit_id: id,
+      description: desc ?? pickDesc(),
+      author: pickAuthor(rand),
+      timestamp: isoAt(nextTs()),
+      has_conflicts: rollConflicts ? rand() < 0.2 : false,
+      bookmarks: [],
+      parents,
+    });
+    return id;
+  };
   let mainSinceEpisode = 0;
   let episode = 0;
   const EPISODES = 8;
   const every = Math.floor((CHANGES_COUNT - 40) / EPISODES);
+  const pushEpisode = (): void => {
+    const k = 2 + Math.floor(rand() * 3);
+    let sidePrev: string | null = null;
+    for (let s = 0; s < k; s++) {
+      sidePrev = pushChange(sidePrev == null ? [prevMain ?? ""] : [sidePrev]);
+    }
+    prevMain = pushChange(
+      prevMain == null ? [sidePrev!] : [prevMain, sidePrev!],
+      DESCRIPTIONS[30 + (episode % 5)],
+      true,
+    );
+    mainSinceEpisode = 0;
+    episode++;
+  };
 
   while (out.length < CHANGES_COUNT) {
     const room = CHANGES_COUNT - out.length;
     if (episode < EPISODES && mainSinceEpisode >= every && room >= 7) {
-      const k = 2 + Math.floor(rand() * 3);
-      let sidePrev: string | null = null;
-      for (let s = 0; s < k; s++) {
-        const id = hex8(Math.floor(rand() * 0x100000000));
-        out.push({
-          change_id: hex8(Math.floor(rand() * 0x100000000)),
-          commit_id: id,
-          description: pickDesc(),
-          author: pickAuthor(rand),
-          timestamp: isoAt(nextTs()),
-          has_conflicts: false,
-          bookmarks: [],
-          parents: sidePrev == null ? [prevMain ?? ""] : [sidePrev],
-        });
-        sidePrev = id;
-      }
-      const id = hex8(Math.floor(rand() * 0x100000000));
-      out.push({
-        change_id: hex8(Math.floor(rand() * 0x100000000)),
-        commit_id: id,
-        description: DESCRIPTIONS[30 + (episode % 5)],
-        author: pickAuthor(rand),
-        timestamp: isoAt(nextTs()),
-        has_conflicts: rand() < 0.2,
-        bookmarks: [],
-        parents: prevMain == null ? [sidePrev!] : [prevMain, sidePrev!],
-      });
-      prevMain = id;
-      mainSinceEpisode = 0;
-      episode++;
+      pushEpisode();
     } else {
-      const id = hex8(Math.floor(rand() * 0x100000000));
-      out.push({
-        change_id: hex8(Math.floor(rand() * 0x100000000)),
-        commit_id: id,
-        description: pickDesc(),
-        author: pickAuthor(rand),
-        timestamp: isoAt(nextTs()),
-        has_conflicts: false,
-        bookmarks: [],
-        parents: prevMain == null ? [] : [prevMain],
-      });
-      prevMain = id;
+      prevMain = pushChange(prevMain == null ? [] : [prevMain]);
       mainSinceEpisode++;
     }
   }
