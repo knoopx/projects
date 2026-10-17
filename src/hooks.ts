@@ -28,20 +28,27 @@ function useListFollow(
   renderer: NativeRenderer,
   rowHeight: number,
 ) {
+  const scrollTarget = (
+    anchor: number[],
+    index: number,
+  ): number | null => {
+    const [item, off, vh] = anchor;
+    const H = vh ?? 0;
+    const T = item * rowHeight + (off ?? 0);
+    const rowTop = index * rowHeight;
+    const rowBottom = (index + 1) * rowHeight;
+    if (rowTop >= T && rowBottom <= T + H) return null;
+    return rowBottom > T + H ? rowBottom - H : rowTop;
+  };
+
   const ensureVisible = useCallback(
     (index: number) => {
       const id = listRef.current?.id;
       if (id === undefined) return;
       const anchor = renderer.getListScrollTop?.(id);
       if (!anchor) return;
-      const [item, off, vh] = anchor;
-      const H = vh ?? 0;
-      const T = item * rowHeight + (off ?? 0);
-      const rowTop = index * rowHeight;
-      const rowBottom = (index + 1) * rowHeight;
-      if (rowTop >= T && rowBottom <= T + H) return;
-
-      const targetY = rowBottom > T + H ? rowBottom - H : rowTop;
+      const targetY = scrollTarget(anchor, index);
+      if (targetY === null) return;
       const ti = Math.max(0, Math.floor(targetY / rowHeight));
       const toff = Math.max(0, targetY - ti * rowHeight);
       renderer.scrollToItem?.(id, ti, toff);
@@ -293,6 +300,22 @@ export function useSidebarKeyboard({
   refresh: (repo: ProjectRepo) => void;
 }) {
   useEffect(() => {
+    const selectEdge = (i: number) => {
+      const p = visibleProjects[i];
+      if (p) setSelectedPath(p.path);
+    };
+    const actions: Record<string, () => void> = {
+      up: () => moveSel(-1),
+      down: () => moveSel(1),
+      "page-up": () => pageSel(-1),
+      "page-down": () => pageSel(1),
+      home: () => selectEdge(0),
+      end: () => selectEdge(visibleProjects.length - 1),
+      refresh: () => {
+        if (selectedRef.current) void refresh(selectedRef.current);
+      },
+    };
+
     keyHandler.current = (e: WindowKeyEvent) => {
       const key = keyOf(e);
       const mods = e.modifiers ?? {};
@@ -306,34 +329,8 @@ export function useSidebarKeyboard({
 
       if (dropdownVisibleRef.current) return;
       const m = matchShortcut(SIDEBAR, key, mods);
-      if (!m) return;
-      switch (m.id) {
-        case "up":
-          moveSel(-1);
-          return;
-        case "down":
-          moveSel(1);
-          return;
-        case "home": {
-          const first = visibleProjects[0];
-          if (first) setSelectedPath(first.path);
-          return;
-        }
-        case "end": {
-          const last = visibleProjects[visibleProjects.length - 1];
-          if (last) setSelectedPath(last.path);
-          return;
-        }
-        case "page-up":
-          pageSel(-1);
-          return;
-        case "page-down":
-          pageSel(1);
-          return;
-        case "refresh":
-          if (selectedRef.current) void refresh(selectedRef.current);
-          return;
-      }
+      const act = m ? actions[m.id] : undefined;
+      if (act) act();
     };
     return () => {
       keyHandler.current = null;
