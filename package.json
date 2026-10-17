@@ -13,7 +13,7 @@
     "@gpuix/native": "0.10.0",
     "@gpuix/native-linux-x64-gnu": "0.10.0",
     "@gpuix/react": "^0.10.0",
-    "adwaita-gpuix": "file:../adwaita-gpuix",
+    "adwaita-gpuix": "workspace:*",
     "react": "^19.3.1"
   },
   "devDependencies": {
