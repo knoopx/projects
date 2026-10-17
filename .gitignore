@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.fallow/
+gpuix-native.linux-x64-gnu.node
+*.png
+!src/**/*.png

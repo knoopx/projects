@@ -1,0 +1,29 @@
+{
+  "roots": ["~/Projects"],
+  "commands": [
+    {
+      "id": "open",
+      "keys": [["ctrl", "o"]],
+      "cmd": "xdg-open",
+      "args": ["{path}"]
+    },
+    {
+      "id": "changes",
+      "keys": [["ctrl", "j"]],
+      "cmd": "changes",
+      "args": ["{path}"]
+    },
+    {
+      "id": "terminal",
+      "keys": [["ctrl", "k"]],
+      "cmd": "kitty",
+      "args": ["{path}"]
+    },
+    {
+      "id": "pi",
+      "keys": [["ctrl", "p"]],
+      "cmd": "kitty",
+      "args": ["-d", "{path}", "pi"]
+    }
+  ]
+}
