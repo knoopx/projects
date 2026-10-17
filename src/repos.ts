@@ -40,42 +40,52 @@ const SKIP_DIRS = new Set([
 
 const MAX_DEPTH = 4;
 
+function readEntries(dir: string): string[] | null {
+  try {
+    return readdirSync(dir);
+  } catch {
+    return null;
+  }
+}
+
+function isJjRepo(dir: string): boolean {
+  try {
+    return existsSync(join(dir, ".jj"));
+  } catch {
+    return false;
+  }
+}
+
+function isDir(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export function scanProjects(roots: string[]): ProjectRepo[] {
   const out: ProjectRepo[] = [];
   for (const root of roots) {
     const walk = (dir: string, depth: number) => {
-      let entries: string[];
-      try {
-        entries = readdirSync(dir);
-      } catch {
-        return;
-      }
+      const entries = readEntries(dir);
+      if (!entries) return;
       for (const entry of entries) {
         if (SKIP_DIRS.has(entry)) continue;
         const full = join(dir, entry);
-        try {
-          if (!existsSync(join(full, ".jj"))) continue;
-        } catch {
-          continue;
-        }
+        if (!isJjRepo(full)) continue;
         out.push({
           path: full,
           name: entry,
           relPath: relative(root, full) || entry,
           lastTouchedMs: null,
         });
-        continue;
       }
       if (depth >= MAX_DEPTH) return;
       for (const entry of entries) {
         if (SKIP_DIRS.has(entry) || entry.startsWith(".")) continue;
-        const full = join(dir, entry);
-        try {
-          if (!existsSync(full)) continue;
-        } catch {
-          continue;
-        }
-        walk(full, depth + 1);
+        if (!isDir(join(dir, entry))) continue;
+        walk(join(dir, entry), depth + 1);
       }
     };
     walk(root, 0);
@@ -247,36 +257,40 @@ function detectLicense(repoPath: string): string | null {
   return null;
 }
 
+function statSafe(path: string) {
+  try {
+    return statSync(path);
+  } catch {
+    return null;
+  }
+}
+
 function detectLanguage(repoPath: string): string | null {
   const counts = new Map<string, number>();
   let visited = 0;
+  const countFileLang = (entry: string): void => {
+    visited += 1;
+    const dot = entry.lastIndexOf(".");
+    if (dot <= 0) return;
+    const lang = LANG_EXT[entry.slice(dot + 1).toLowerCase()];
+    if (!lang) return;
+    counts.set(lang, (counts.get(lang) ?? 0) + 1);
+  };
   const walk = (dir: string, depth: number): void => {
     if (visited >= META_FILE_LIMIT || depth > META_MAX_DEPTH) return;
-    let entries: string[];
-    try {
-      entries = readdirSync(dir);
-    } catch {
-      return;
-    }
+    const entries = readEntries(dir);
+    if (!entries) return;
     for (const entry of entries) {
       if (visited >= META_FILE_LIMIT) return;
       if (entry.startsWith(".") || SKIP_DIRS.has(entry)) continue;
       const full = join(dir, entry);
-      let st;
-      try {
-        st = statSync(full);
-      } catch {
-        continue;
-      }
+      const st = statSafe(full);
+      if (st === null) continue;
       if (st.isDirectory()) {
         walk(full, depth + 1);
         continue;
       }
-      visited += 1;
-      const dot = entry.lastIndexOf(".");
-      if (dot <= 0) continue;
-      const lang = LANG_EXT[entry.slice(dot + 1).toLowerCase()];
-      if (lang) counts.set(lang, (counts.get(lang) ?? 0) + 1);
+      countFileLang(entry);
     }
   };
   walk(repoPath, 0);
@@ -337,6 +351,40 @@ function sanitizeDescription(raw: string): string {
   return normalized.length > 0 ? normalized : "(no description)";
 }
 
+function parseBookmarks(raw: string | undefined): string[] {
+  return [...new Set((raw ?? "").split(",").map((b) => b.trim()).filter((b) => b.length > 0))];
+}
+
+function parseParents(raw: string | undefined): string[] {
+  return (raw ?? "").split(",").filter((p) => p.length > 0 && !/^0+$/.test(p));
+}
+
+function parseChangeLine(line: string): RepoChange | null {
+  if (line.trim().length === 0) return null;
+  const parts = line.split("\t");
+  if (parts.length < 8) return null;
+  const [
+    change_id,
+    commit_id,
+    author,
+    timestamp,
+    desc,
+    has_conflicts,
+    parentsRaw,
+    bookmarksRaw,
+  ] = parts;
+  return {
+    change_id,
+    commit_id,
+    description: sanitizeDescription(desc ?? ""),
+    author: (author ?? "").trim(),
+    timestamp: timestamp ?? "",
+    has_conflicts: has_conflicts === "true",
+    bookmarks: parseBookmarks(bookmarksRaw),
+    parents: parseParents(parentsRaw),
+  };
+}
+
 const DEFAULT_CHANGE_REVSET = "::";
 
 export async function loadChanges(
@@ -361,42 +409,10 @@ export async function loadChanges(
   if (res.code !== 0) {
     throw new Error(res.stderr.trim() || `jj log failed in ${repoPath}`);
   }
-  const changes: RepoChange[] = [];
-  for (const line of res.stdout.split("\n")) {
-    if (line.trim().length === 0) continue;
-    const parts = line.split("\t");
-    if (parts.length < 8) continue;
-    const [
-      change_id,
-      commit_id,
-      author,
-      timestamp,
-      desc,
-      has_conflicts,
-      parentsRaw,
-      bookmarksRaw,
-    ] = parts;
-    changes.push({
-      change_id,
-      commit_id,
-      description: sanitizeDescription(desc ?? ""),
-      author: (author ?? "").trim(),
-      timestamp: timestamp ?? "",
-      has_conflicts: has_conflicts === "true",
-      bookmarks: [
-        ...new Set(
-          (bookmarksRaw ?? "")
-            .split(",")
-            .map((b) => b.trim())
-            .filter((b) => b.length > 0),
-        ),
-      ],
-      parents: (parentsRaw ?? "")
-        .split(",")
-        .filter((p) => p.length > 0 && !/^0+$/.test(p)),
-    });
-  }
-  return changes;
+  return res.stdout
+    .split("\n")
+    .map(parseChangeLine)
+    .filter((c): c is RepoChange => c !== null);
 }
 
 export async function lastTouched(repoPath: string): Promise<number | null> {
