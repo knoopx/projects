@@ -11,6 +11,18 @@ import { Sparkline } from "./Sparkline";
 
 export const PROJECT_ROW_HEIGHT = 64;
 
+function metaLine(meta: ProjectMeta | undefined, repo: ProjectRepo): string {
+  const segments: string[] = [];
+  if (meta?.language) segments.push(meta.language);
+  if (meta?.license) segments.push(meta.license);
+  segments.push(
+    repo.lastTouchedMs !== null
+      ? `Updated ${humanizeAgo(repo.lastTouchedMs)}`
+      : "never",
+  );
+  return segments.join(" · ");
+}
+
 export function ProjectRow({
   repo,
   selected,
@@ -27,15 +39,7 @@ export function ProjectRow({
   const t = useAdwaita();
   const { colors } = t;
   const language = meta?.language ?? null;
-  const license = meta?.license ?? null;
-  const metaSegments: string[] = [];
-  if (language) metaSegments.push(language);
-  if (license) metaSegments.push(license);
-  metaSegments.push(
-    repo.lastTouchedMs !== null
-      ? `Updated ${humanizeAgo(repo.lastTouchedMs)}`
-      : "never",
-  );
+  const metaSegments = metaLine(meta, repo);
   return (
     <ListRow
       selected={selected}
@@ -112,7 +116,7 @@ export function ProjectRow({
                 overflow: "hidden",
               }}
             >
-              {metaSegments.join(" · ")}
+              {metaSegments}
             </T>
           </div>
         </div>
