@@ -34,6 +34,7 @@ import {
   SidebarNoMatchShot,
   SidebarEmptyShot,
   SidebarDropdownShot,
+  SidebarCompositeShot,
 } from "../src/components/SidebarCanvas";
 import {
   AppScreenShot,
@@ -41,6 +42,16 @@ import {
   AppScreenNoChangesShot,
   AppScreenErrorShot,
 } from "../src/screens/Screen";
+import { MockupDropdownShot } from "../mockups/MockupDropdown";
+import { MockupNoMatchShot } from "../mockups/MockupNoMatch";
+import {
+  MockupDashboardShot,
+  MockupDashboardEmptyShot,
+} from "../mockups/MockupDashboard";
+import { MockupChangeDetailShot } from "../mockups/MockupChangeDetail";
+import { MockupLoadingShot } from "../mockups/MockupLoading";
+import { MockupRightHeaderShot } from "../mockups/MockupRightHeader";
+import { MockupStatusBarShot } from "../mockups/MockupStatusBar";
 
 export interface ComponentShot {
   name: string;
@@ -109,6 +120,11 @@ const COMPONENT_SHOTS: ShotEntry[] = [
     SidebarDropdownShot,
     "ProjectsSidebarDropdown",
   ),
+  entry(
+    "src/components/ProjectsSidebar.tsx",
+    SidebarCompositeShot,
+    "ProjectsSidebarComposite",
+  ),
 ];
 
 const SCREEN_SHOTS: ShotEntry[] = [
@@ -118,7 +134,46 @@ const SCREEN_SHOTS: ShotEntry[] = [
   entry("src/screens/Screen.tsx", AppScreenErrorShot, "ScreenError"),
 ];
 
-const ALL_SHOTS: ShotEntry[] = [...COMPONENT_SHOTS, ...SCREEN_SHOTS];
+const MOCKUP_SHOTS: ShotEntry[] = [
+  entry("mockups/MockupDropdown.tsx", MockupDropdownShot, "MockupDropdown"),
+  entry(
+    "mockups/MockupNoMatch.tsx",
+    MockupNoMatchShot,
+    "MockupNoMatch",
+  ),
+  entry(
+    "mockups/MockupDashboard.tsx",
+    MockupDashboardShot,
+    "MockupDashboard",
+  ),
+  entry(
+    "mockups/MockupDashboard.tsx",
+    MockupDashboardEmptyShot,
+    "MockupDashboardEmpty",
+  ),
+  entry(
+    "mockups/MockupChangeDetail.tsx",
+    MockupChangeDetailShot,
+    "MockupChangeDetail",
+  ),
+  entry(
+    "mockups/MockupLoading.tsx",
+    MockupLoadingShot,
+    "MockupLoading",
+  ),
+  entry(
+    "mockups/MockupRightHeader.tsx",
+    MockupRightHeaderShot,
+    "MockupRightHeader",
+  ),
+  entry(
+    "mockups/MockupStatusBar.tsx",
+    MockupStatusBarShot,
+    "MockupStatusBar",
+  ),
+];
+
+const ALL_SHOTS: ShotEntry[] = [...COMPONENT_SHOTS, ...SCREEN_SHOTS, ...MOCKUP_SHOTS];
 
 const SIZES: Record<string, { w: number; h: number }> = {
   EmptyState: { w: 412, h: 680 },
@@ -135,10 +190,19 @@ const SIZES: Record<string, { w: number; h: number }> = {
   SidebarNoMatch: { w: 412, h: 752 },
   SidebarEmpty: { w: 412, h: 752 },
   SidebarDropdown: { w: 412, h: 752 },
+  SidebarComposite: { w: 412, h: 752 },
   Screen: { w: 1312, h: 752 },
   ScreenEmpty: { w: 1312, h: 752 },
   ScreenNoChanges: { w: 1312, h: 752 },
   ScreenError: { w: 1312, h: 752 },
+  MockupDropdown: { w: 412, h: 752 },
+  MockupNoMatch: { w: 412, h: 752 },
+  MockupDashboard: { w: 792, h: 480 },
+  MockupDashboardEmpty: { w: 792, h: 320 },
+  MockupChangeDetail: { w: 792, h: 640 },
+  MockupLoading: { w: 792, h: 480 },
+  MockupRightHeader: { w: 792, h: 752 },
+  MockupStatusBar: { w: 1312, h: 240 },
 };
 
 const DEFAULT_SIZE = { w: 560, h: 480 };
@@ -191,6 +255,17 @@ function sleep(ms: number): Promise<void> {
   return new Promise((res) => setTimeout(res, ms));
 }
 
+async function waitForNewScreenshot(
+  before: string | null,
+): Promise<string | null> {
+  for (let i = 0; i < 40; i++) {
+    const c = newestScreenshot();
+    if (c && c !== before) return c;
+    await sleep(50);
+  }
+  return null;
+}
+
 async function renderAndCapture(name: string): Promise<void> {
   const shot = ALL_SHOTS.find((s) => s.name === name);
   if (!shot) {
@@ -225,16 +300,8 @@ async function renderAndCapture(name: string): Promise<void> {
     ["msg", "action", "screenshot-window", "--id", String(id), "-d", "true"],
     { encoding: "utf8" },
   );
-  let after = before;
-  for (let i = 0; i < 40; i++) {
-    const c = newestScreenshot();
-    if (c && c !== before) {
-      after = c;
-      break;
-    }
-    await sleep(50);
-  }
-  if (!after || after === before) {
+  const after = await waitForNewScreenshot(before);
+  if (!after) {
     console.error(`✗ ${name}: no new screenshot appeared`);
     process.exit(1);
   }

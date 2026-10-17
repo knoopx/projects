@@ -106,9 +106,26 @@ export const SidebarDropdownShot: ComponentShot = {
     <Shot width={380}>
       <SidebarCanvas
         open
-        filter="py"
+        filter="s"
         visible={visibleWithFilter(PROJECTS, "", [])}
         selectedPath={visibleWithFilter(PROJECTS, "", [])[0]?.path ?? null}
+      />
+    </Shot>
+  ),
+};
+
+const COMPOSITE_VISIBLE = visibleWithFilter(PROJECTS, "s", ["Rust"]);
+
+export const SidebarCompositeShot: ComponentShot = {
+  name: "SidebarComposite",
+  el: (
+    <Shot width={380}>
+      <SidebarCanvas
+        open
+        filter="s"
+        languages={["Rust"]}
+        visible={COMPOSITE_VISIBLE}
+        selectedPath={COMPOSITE_VISIBLE[0]?.path ?? null}
       />
     </Shot>
   ),

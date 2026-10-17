@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxItem,
-  ComboboxList,
-  useAdwaita,
-} from "adwaita-gpuix";
-import { ComboboxInput as ComboboxField } from "@gpuix/react/combobox";
-import { useGpuix, useWindowSize, type PublicInstance } from "@gpuix/react";
+import { Frame, Icon, T, useAdwaita } from "adwaita-gpuix";
+import { useGpuix, type PublicInstance } from "@gpuix/react";
 import type { EventPayload } from "@gpuix/native";
 import type { ProjectMeta } from "../repos";
 import { keyHandler, keyOf } from "../keybus";
 import { LanguagePill } from "./LanguagePill";
 
 const SUGGESTION_LIMIT = 8;
+const PANEL_MAX_HEIGHT = 320;
 
 const NAV_KEYS = new Set(["pageup", "pagedown", "home", "end"]);
 
@@ -67,13 +61,12 @@ export function FilterCombobox({
 }) {
   const { colors } = useAdwaita();
   const { renderer } = useGpuix();
-  const { width: windowWidth } = useWindowSize();
-
-  const suppressClearRef = useRef(false);
 
   const filterInputRef = useRef<PublicInstance | null>(null);
-  const boxRef = useRef<PublicInstance | null>(null);
-  const [boxWidth, setBoxWidth] = useState<number | null>(null);
+
+  
+  
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const focusTriedRef = useRef(false);
   useEffect(() => {
@@ -89,23 +82,72 @@ export function FilterCombobox({
     }
     focusTriedRef.current = true;
     renderer.focusElement(el.id);
-  }, [renderer]);
+    
+    
+    
+    onOpenChange?.(true);
+  }, [renderer, onOpenChange]);
 
-  const handleLangChange = (value: string | string[] | null) => {
-    suppressClearRef.current = true;
-    const next = Array.isArray(value) ? value : value ? [value] : [];
-    onLanguagesChange(next);
+  const effectiveOpen = (open ?? false) && filter.trim().length > 0;
+  const dropdownVisible = effectiveOpen && suggestions.length > 0;
+
+  
+  
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [filter]);
+  useEffect(() => {
+    if (dropdownVisible) setActiveIndex(0);
+  }, [dropdownVisible]);
+
+  useEffect(() => {
+    onVisibleChange?.(dropdownVisible);
+  }, [dropdownVisible, onVisibleChange]);
+
+  const suggestionCount = suggestions.length;
+  const activeRow =
+    suggestionCount === 0 ? 0 : Math.min(activeIndex, suggestionCount - 1);
+
+  const selectSuggestion = (language: string) => {
+    onLanguagesChange(
+      languages.includes(language) ? languages : [...languages, language],
+    );
     onFilterChange("");
     onOpenChange?.(false);
   };
 
-  const handleInputChange = (value: string) => {
-    if (value === "" && suppressClearRef.current) {
-      suppressClearRef.current = false;
+  const handleInputChange = (event: EventPayload) => {
+    const value = event.value ?? "";
+    onFilterChange(value);
+    
+    
+    if (value.trim().length > 0) onOpenChange?.(true);
+  };
+
+  const handleInputSubmit = () => {
+    
+    
+    if (dropdownVisible && suggestionCount > 0) {
+      selectSuggestion(suggestions[activeRow]);
+    }
+  };
+
+  const handleInputFocus = () => {
+    onOpenChange?.(true);
+  };
+
+  const handleInputKeyDown = (event: EventPayload) => {
+    const key = keyOf({ key: event.key ?? "" });
+    if (key === "escape") {
+      onOpenChange?.(false);
       return;
     }
-    suppressClearRef.current = false;
-    onFilterChange(value);
+    if (!dropdownVisible || suggestionCount === 0) return;
+    if (key === "down") {
+      setActiveIndex((i) => (i + 1) % suggestionCount);
+    } else if (key === "up") {
+      setActiveIndex((i) => (i - 1 + suggestionCount) % suggestionCount);
+    }
   };
 
   const handleInputKeyUp = (event: EventPayload) => {
@@ -124,61 +166,31 @@ export function FilterCombobox({
     }
   };
 
-  const effectiveOpen = (open ?? false) && filter.trim().length > 1;
-  const dropdownVisible = effectiveOpen && suggestions.length > 0;
-
-  useEffect(() => {
-    onVisibleChange?.(dropdownVisible);
-  }, [dropdownVisible, onVisibleChange]);
-
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    let tries = 0;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const measure = () => {
-      const bounds = renderer?.getElementBounds?.(el.id);
-      if (bounds && bounds.width > 0) {
-        setBoxWidth(bounds.width - 16);
-        return;
-      }
-      if (++tries < 25) timer = setTimeout(measure, 100);
-    };
-    timer = setTimeout(measure, 0);
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [renderer, windowWidth]);
-
   return (
-    <div style={{ padding: 8, paddingBottom: 8 }} ref={boxRef}>
-      <Combobox
-        items={allLanguages}
-        multiple
-        value={languages}
-        onValueChange={handleLangChange}
-        inputValue={filter}
-        onInputValueChange={handleInputChange}
-        open={effectiveOpen}
-        onOpenChange={onOpenChange}
-        autoHighlight
-        style={{ display: "flex", flexDirection: "column", minWidth: 0 }}
+    <div style={{ padding: 8, paddingBottom: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          minWidth: 0,
+          width: "100%",
+          gap: 8,
+        }}
       >
-        {}
-        <div
+        <Frame
           style={{
             display: "flex",
             flexDirection: "row",
-            flexWrap: "wrap",
             alignItems: "center",
-            gap: 4,
-            minHeight: 34,
-            padding: 4,
-            paddingLeft: 6,
-            paddingRight: 8,
+            gap: 8,
+            minHeight: 36,
+            padding: 8,
+            paddingLeft: 10,
             width: "100%",
           }}
         >
+          <Icon name="search" size={14} color={colors.dim_fg} />
           {languages.map((lang) => (
             <LanguagePill
               key={lang}
@@ -188,11 +200,20 @@ export function FilterCombobox({
               }
             />
           ))}
-          <ComboboxField
+          <input
             ref={filterInputRef}
-            onKeyUp={handleInputKeyUp}
+            value={filter}
             placeholder="Filter projects…"
-            theme={{ text: colors.fg, textMuted: colors.dim_fg }}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            onKeyUp={handleInputKeyUp}
+            onKeyDown={handleInputKeyDown}
+            onSubmit={handleInputSubmit}
+            theme={{
+              text: colors.fg,
+              textMuted: colors.dim_fg,
+              caret: colors.accent,
+            }}
             style={{
               display: "flex",
               flexGrow: 1,
@@ -203,25 +224,57 @@ export function FilterCombobox({
               color: colors.fg,
             }}
           />
-        </div>
-        {}
-        {suggestions.length > 0 ? (
-          <ComboboxContent
+        </Frame>
+        {dropdownVisible ? (
+          <Frame
             style={{
-              width: boxWidth ?? undefined,
-              maxHeight: 320,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              padding: 4,
+              maxHeight: PANEL_MAX_HEIGHT,
+              width: "100%",
             }}
           >
-            <ComboboxList>
-              {suggestions.map((l) => (
-                <ComboboxItem key={l} value={l}>
-                  {l}
-                </ComboboxItem>
-              ))}
-            </ComboboxList>
-          </ComboboxContent>
+            {suggestions.map((l, i) => {
+              const active = i === activeRow;
+              return (
+                <div
+                  key={l}
+                  onClick={() => selectSuggestion(l)}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    height: 30,
+                    padding: 8,
+                    borderRadius: 8,
+                    backgroundColor: active ? colors.accentTint : "transparent",
+                    cursor: "pointer",
+                    hover: { backgroundColor: colors.accentTint },
+                  }}
+                >
+                  <Icon
+                    name={active ? "check" : "search"}
+                    size={12}
+                    color={active ? colors.accent : colors.dim_fg}
+                    style={{ pointerEvents: "none" }}
+                  />
+                  <T
+                    size="body"
+                    color={active ? colors.accent : colors.fg}
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {l}
+                  </T>
+                </div>
+              );
+            })}
+          </Frame>
         ) : null}
-      </Combobox>
+      </div>
     </div>
   );
 }
