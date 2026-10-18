@@ -324,6 +324,7 @@ export function useSidebarKeyboard({
       if (cmd) {
         const sel = selectedRef.current;
         if (sel) runCommand(cmd, sel.path);
+        if (cmd.quit) process.exit(0);
         return;
       }
 

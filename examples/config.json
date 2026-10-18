@@ -24,6 +24,11 @@
       "keys": [["ctrl", "p"]],
       "cmd": "kitty",
       "args": ["-d", "{path}", "pi"]
+    },
+    {
+      "id": "quit",
+      "keys": ["escape"],
+      "quit": true
     }
   ]
 }

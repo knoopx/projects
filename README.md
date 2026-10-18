@@ -37,16 +37,17 @@ then `~/.config/projects/config.json`.
 
 ## Commands
 
-User-defined project commands are configured in `config.json`. There
-are no built-in commands: a command that is not configured is
-unavailable. Each entry in `commands`:
+User-defined project commands are configured in `config.json`. Any
+command that is not configured is unavailable. Each entry in
+`commands`:
 
-| Field  | Description                                                         |
-| ------ | ------------------------------------------------------------------- |
-| `id`   | Command id; shown in the status bar hints                           |
-| `keys` | Key bindings (single key, or a chord like `["ctrl", "shift", "x"]`) |
-| `cmd`  | Executable to run                                                   |
-| `args` | Arguments; `{path}` is substituted with the selected project path   |
+| Field  | Description                                                              |
+| ------ | ------------------------------------------------------------------------ |
+| `id`   | Command id; shown in the status bar hints                                |
+| `keys` | Key bindings (single key, or a chord like `["ctrl", "shift", "x"]`)       |
+| `cmd`  | Executable to run (optional)                                             |
+| `args` | Arguments; `{path}` is substituted with the selected project path (optional) |
+| `quit` | Optional; when true the app closes after the command runs               |
 
 A configured command takes precedence over the built-in keybindings. See
 [`examples/config.json`](examples/config.json).

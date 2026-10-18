@@ -6,9 +6,11 @@ export interface Command {
 
   keys: Kbd[];
 
-  cmd: string;
+  cmd?: string;
 
-  args: string[];
+  args?: string[];
+
+  quit?: boolean;
 }
 
 export function findCommandBinding(
@@ -32,7 +34,8 @@ export function findCommandBinding(
 }
 
 export function runCommand(cmd: Command, path: string): boolean {
-  const args = cmd.args.map((a) => a.replace(/\{path\}/g, path));
+  if (!cmd.cmd) return false;
+  const args = (cmd.args ?? []).map((a) => a.replace(/\{path\}/g, path));
   const r = spawnSync(cmd.cmd, args, { stdio: "ignore" });
   return r.status === 0;
 }
