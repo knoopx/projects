@@ -42,16 +42,6 @@ import {
   AppScreenNoChangesShot,
   AppScreenErrorShot,
 } from "../src/screens/Screen";
-import { MockupDropdownShot } from "../mockups/MockupDropdown";
-import { MockupNoMatchShot } from "../mockups/MockupNoMatch";
-import {
-  MockupDashboardShot,
-  MockupDashboardEmptyShot,
-} from "../mockups/MockupDashboard";
-import { MockupChangeDetailShot } from "../mockups/MockupChangeDetail";
-import { MockupLoadingShot } from "../mockups/MockupLoading";
-import { MockupRightHeaderShot } from "../mockups/MockupRightHeader";
-import { MockupStatusBarShot } from "../mockups/MockupStatusBar";
 
 export interface ComponentShot {
   name: string;
@@ -134,46 +124,7 @@ const SCREEN_SHOTS: ShotEntry[] = [
   entry("src/screens/Screen.tsx", AppScreenErrorShot, "ScreenError"),
 ];
 
-const MOCKUP_SHOTS: ShotEntry[] = [
-  entry("mockups/MockupDropdown.tsx", MockupDropdownShot, "MockupDropdown"),
-  entry(
-    "mockups/MockupNoMatch.tsx",
-    MockupNoMatchShot,
-    "MockupNoMatch",
-  ),
-  entry(
-    "mockups/MockupDashboard.tsx",
-    MockupDashboardShot,
-    "MockupDashboard",
-  ),
-  entry(
-    "mockups/MockupDashboard.tsx",
-    MockupDashboardEmptyShot,
-    "MockupDashboardEmpty",
-  ),
-  entry(
-    "mockups/MockupChangeDetail.tsx",
-    MockupChangeDetailShot,
-    "MockupChangeDetail",
-  ),
-  entry(
-    "mockups/MockupLoading.tsx",
-    MockupLoadingShot,
-    "MockupLoading",
-  ),
-  entry(
-    "mockups/MockupRightHeader.tsx",
-    MockupRightHeaderShot,
-    "MockupRightHeader",
-  ),
-  entry(
-    "mockups/MockupStatusBar.tsx",
-    MockupStatusBarShot,
-    "MockupStatusBar",
-  ),
-];
-
-const ALL_SHOTS: ShotEntry[] = [...COMPONENT_SHOTS, ...SCREEN_SHOTS, ...MOCKUP_SHOTS];
+const ALL_SHOTS: ShotEntry[] = [...COMPONENT_SHOTS, ...SCREEN_SHOTS];
 
 const SIZES: Record<string, { w: number; h: number }> = {
   EmptyState: { w: 412, h: 680 },
@@ -195,14 +146,6 @@ const SIZES: Record<string, { w: number; h: number }> = {
   ScreenEmpty: { w: 1312, h: 752 },
   ScreenNoChanges: { w: 1312, h: 752 },
   ScreenError: { w: 1312, h: 752 },
-  MockupDropdown: { w: 412, h: 752 },
-  MockupNoMatch: { w: 412, h: 752 },
-  MockupDashboard: { w: 792, h: 480 },
-  MockupDashboardEmpty: { w: 792, h: 320 },
-  MockupChangeDetail: { w: 792, h: 640 },
-  MockupLoading: { w: 792, h: 480 },
-  MockupRightHeader: { w: 792, h: 752 },
-  MockupStatusBar: { w: 1312, h: 240 },
 };
 
 const DEFAULT_SIZE = { w: 560, h: 480 };
