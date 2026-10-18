@@ -47,7 +47,7 @@ command that is not configured is unavailable. Each entry in
 | `keys` | Key bindings (single key, or a chord like `["ctrl", "shift", "x"]`)       |
 | `cmd`  | Executable to run (optional)                                             |
 | `args` | Arguments; `{path}` is substituted with the selected project path (optional) |
-| `quit` | Optional; when true the app closes after the command runs               |
+| `quit` | Optional; when true the app launches the command (if any) detached and exits immediately, without waiting for it |
 
 A configured command takes precedence over the built-in keybindings. See
 [`examples/config.json`](examples/config.json).

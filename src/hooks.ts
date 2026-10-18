@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import type { NativeRenderer } from "@gpuix/native/host";
 import type { PublicInstance } from "@gpuix/react";
 import { keyHandler, keyOf, type WindowKeyEvent } from "./keybus";
-import { findCommandBinding, runCommand } from "./commands";
+import { findCommandBinding, runCommand, runCommandDetached } from "./commands";
 import type { Config } from "./config";
 import { matchShortcut, SIDEBAR } from "./shortcuts";
 import {
@@ -323,7 +323,10 @@ export function useSidebarKeyboard({
       const cmd = findCommandBinding(config.commands, key, mods);
       if (cmd) {
         const sel = selectedRef.current;
-        if (sel) runCommand(cmd, sel.path);
+        if (sel) {
+          if (cmd.quit) runCommandDetached(cmd, sel.path);
+          else runCommand(cmd, sel.path);
+        }
         if (cmd.quit) process.exit(0);
         return;
       }

@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { bindingMatches, type Kbd, type KeyMods } from "./shortcuts";
 
 export interface Command {
@@ -33,9 +33,25 @@ export function findCommandBinding(
   return best;
 }
 
+function commandArgs(cmd: Command, path: string): string[] {
+  return (cmd.args ?? []).map((a) => a.replace(/\{path\}/g, path));
+}
+
 export function runCommand(cmd: Command, path: string): boolean {
   if (!cmd.cmd) return false;
-  const args = (cmd.args ?? []).map((a) => a.replace(/\{path\}/g, path));
-  const r = spawnSync(cmd.cmd, args, { stdio: "ignore" });
+  const r = spawnSync(cmd.cmd, commandArgs(cmd, path), { stdio: "ignore" });
   return r.status === 0;
+}
+
+// Launch the command fire-and-forget: the child is detached (its own
+// session) so it keeps running after this process exits. Does not wait
+// for the child to finish. Returns false if the command has no executable.
+export function runCommandDetached(cmd: Command, path: string): boolean {
+  if (!cmd.cmd) return false;
+  const child = spawn(cmd.cmd, commandArgs(cmd, path), {
+    stdio: "ignore",
+    detached: true,
+  });
+  child.unref();
+  return true;
 }
