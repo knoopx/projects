@@ -143,6 +143,15 @@ export interface ProjectMeta {
   language: string | null;
 }
 
+function matchScore(p: ProjectRepo, q: string): number {
+  const name = p.name.toLowerCase();
+  if (name === q) return 4;
+  if (name.startsWith(q)) return 3;
+  if (name.includes(q)) return 2;
+  if (p.path.toLowerCase().includes(q)) return 1;
+  return 0;
+}
+
 export function filterProjects(
   projects: ProjectRepo[],
   filter: string,
@@ -151,7 +160,7 @@ export function filterProjects(
 ): ProjectRepo[] {
   const q = filter.trim().toLowerCase();
   const hasLangs = languages.length > 0;
-  return projects.filter((p) => {
+  const out = projects.filter((p) => {
     if (
       q &&
       !(p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q))
@@ -162,6 +171,15 @@ export function filterProjects(
       if (!lang || !languages.includes(lang)) return false;
     }
     return true;
+  });
+  if (q.length === 0) return out;
+  return out.sort((a, b) => {
+    const d = matchScore(b, q) - matchScore(a, q);
+    if (d !== 0) return d;
+    if (a.lastTouchedMs === null && b.lastTouchedMs === null) return 0;
+    if (a.lastTouchedMs === null) return 1;
+    if (b.lastTouchedMs === null) return -1;
+    return b.lastTouchedMs - a.lastTouchedMs;
   });
 }
 
