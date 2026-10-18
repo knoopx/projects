@@ -13,6 +13,7 @@ render(
   </AdwaitaContext.Provider>,
   {
     title: "Projects",
+    appId: "projects",
     width: 1280,
     height: 800,
     focus: process.env.GPUIX_BACKGROUND !== "1",
